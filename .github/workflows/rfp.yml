@@ -2,32 +2,48 @@ name: Daily RFP Agent
 
 on:
   schedule:
-    - cron: "0 13 * * *"   # 9am ET
+    - cron: "0 13 * * *"
   workflow_dispatch:
 
 jobs:
   run-agent:
     runs-on: ubuntu-latest
 
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
     steps:
+      # ✅ Updated checkout (no Node issues)
       - uses: actions/checkout@v4
 
-      - name: Ensure file exists
-        run: touch rfp_report.txt
+      # ✅ Explicit Python setup (fixes most failures)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Install packages
-        run: pip install requests beautifulsoup4
+      # ✅ Install dependencies safely
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
 
+      # ✅ Create file if missing
+      - name: Ensure output file exists
+        run: |
+          if [ ! -f rfp_report.txt ]; then
+            echo "Creating file..."
+            touch rfp_report.txt
+          fi
+
+      # ✅ Run script with debug output
       - name: Run script
-        run: python rfp_agent.py
+        run: |
+          echo "Running RFP script..."
+          python rfp_agent.py
 
+      # ✅ Commit results (safe)
       - name: Commit results
         run: |
           git config --global user.name "rfp-bot"
           git config --global user.email "bot@example.com"
           git add rfp_report.txt
-          git commit -m "Update daily RFP report" || echo "No changes"
+          git diff --cached --quiet || git commit -m "Update daily RFP report"
           git push
