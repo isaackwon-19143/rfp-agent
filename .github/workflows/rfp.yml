@@ -1,0 +1,27 @@
+name: Daily RFP Agent
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   # 9am Eastern Time
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: pip install requests beautifulsoup4
+
+      - name: Run script
+        run: python rfp_agent.py
+
+      - name: Commit results
+        run: |
+          git config --global user.name "rfp-bot"
+          git config --global user.email "bot@example.com"
+          git add rfp_report.txt
+          git commit -m "Update daily RFP report" || echo "No changes"
+          git push
